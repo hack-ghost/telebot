@@ -8,6 +8,8 @@ import json
 import sys
 import asyncio
 
+from functools import wraps
+
 import telepot
 from telepot.aio.delegate import pave_event_space, per_chat_id, create_open
 
@@ -33,15 +35,41 @@ except:
 
 # Make a telebot
 class TeleBot(telepot.aio.helper.ChatHandler):
+    switch = True
     def __init__(self, *args, **kwargs):
         super(TeleBot, self).__init__(*args, **kwargs)
         self.handler = Handler(tuling_token, admin)
         self.replier = Replier(self.sender)
 
+    def _privilege_test(fn):
+        @wraps(fn)
+        async def wrapper(self, msg):
+            if msg["from"]["username"] == admin:
+                await fn(self, msg)
+            else:
+                reply = "Sorry, you're not privileged."
+                await self.replier.send(reply, msg)
+        return wrapper
+
+
+    def _switch_controll(fn):
+        @wraps(fn)
+        async def wrapper(self, msg):
+            if msg["text"] == "/switch":
+                TeleBot.switch = not TeleBot.switch
+                reply = "Switched " + ("on" if TeleBot.switch else "off")
+                await self.replier.send(reply, msg)
+                return
+            if TeleBot.switch: await fn(msg)
+        return wrapper
+
+    @_privilege_test
+    @_switch_controll
     async def on_chat_message(self, msg):
         await self.sender.sendChatAction("typing")
         reply = await self.handler.handle(msg)
         await self.replier.send(reply, msg)
+
 
 # Start the Bot
 bot = telepot.aio.DelegatorBot(telebot_token, [
