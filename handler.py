@@ -16,24 +16,23 @@ class Handler(object):
 
     async def _pass(self, *aa, **kk): return ""
 
-    def _by_command(self, prefix=('/', '-'), separator=' ', pass_args=True):
-        def extractor(msg):
-            if msg["text"].startswith('-'):
-                return "-chat" + " " + msg["text"].lstrip("- ")
-            else:
-                return msg["text"]
-
+    def _by_command(self, prefix=("/",), separator=" ", pass_args=True):
         if not isinstance(prefix, (tuple, list)):
             prefix = (prefix,)
 
-        def f(msg):
-            text = extractor(msg)
+        def key_function(msg):
+            text = msg["text"]
+            if text.startswith("-"):
+                chucks = text.lstrip("-" + separator).split(separator)
+                return "chat", chucks if pass_args else ()
+
             for px in prefix:
                 if text.startswith(px):
                     chunks = text[len(px):].split(separator)
                     return chunks[0], (chunks[1:],) if pass_args else ()
             return (None,),  # to distinguish with `None`
-        return f
+
+        return key_function
 
     async def _get_tuling(self, msg, text="你好"):
         api_url = "http://www.tuling123.com/openapi/api"
