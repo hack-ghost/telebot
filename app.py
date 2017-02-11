@@ -56,7 +56,7 @@ class TeleBot(telepot.aio.helper.ChatHandler):
                 TeleBot.switch = not TeleBot.switch
                 reply = "Switched " + ("on" if TeleBot.switch else "off")
                 await self.replier.send(reply, msg)
-                
+
             if msg["text"] == "/switch":
                 await self._privileged(control_switch)(self, msg)
             if TeleBot.switch: await fn(self, msg)
@@ -64,7 +64,6 @@ class TeleBot(telepot.aio.helper.ChatHandler):
 
     @_switch_controll
     async def on_chat_message(self, msg):
-        await self.sender.sendChatAction("typing")
         reply = await self.handler.handle(msg)
         await self.replier.send(reply, msg)
 
@@ -72,8 +71,6 @@ class TeleBot(telepot.aio.helper.ChatHandler):
 bot = telepot.aio.DelegatorBot(telebot_token, [
     pave_event_space()(
         per_chat_id(), create_open, TeleBot, timeout=30),
-    #pave_event_space()(
-    #    per_chat_id(), create_open, TeleBot, timeout=30),
 ])
 
 loop = asyncio.get_event_loop()
