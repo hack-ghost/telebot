@@ -1,6 +1,9 @@
 import argparse
 import json
 
+# Import a non-async telepot library to use non-async getMe() function
+import telepot
+
 # Parse arguments
 argparser = argparse.ArgumentParser(description = "A telegram bot just for fun.")
 argparser.add_argument("--config", action = "store", default = "config.json", type = str, help = "Location of the config file of the bot.")
@@ -20,6 +23,9 @@ class Status(object):
             self._telebot_token = self._bot_config["token"]
             self._admin = self._bot_config["admin"]
             self._tuling_token = self._bot_config["tuling"]
+        self._bot = telepot.Bot(self._telebot_token)
+        self._me = self._bot.getMe()
+        del self._bot # Won't use it in the future
 
     @property
     def tuling_token(self):
@@ -33,4 +39,14 @@ class Status(object):
     def admin(self):
         return self._admin
 
+    @property
+    def name(self):
+        return self._me["username"]
+
+    @property
+    def me(self):
+        return self._me
+
 bot_status = Status()
+
+print(bot_status.me)

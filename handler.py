@@ -1,13 +1,15 @@
 import requests
 import json
 
-from telepot.helper import Router
+import telepot.aio
+from telepot.aio.helper import Router
 
 class Handler(object):
     def __init__(self, tuling_token, admin):
         self._tuling_token = tuling_token
         self.admin = admin
-        self.router = Router(self._by_command(),
+
+        self.text_router = Router(self._by_command(),
         {
         "chat": self.on_chat,
         "count": self.on_count,
@@ -49,4 +51,7 @@ class Handler(object):
         return "233"
 
     async def handle(self, msg):
-        return await self.router.route(msg)
+        content_type, chat_type, chat_id = glance(msg)
+
+        if content_type == "text":
+            return await self.text_router.route(msg)
