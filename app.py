@@ -2,7 +2,6 @@
 #-*- coding: utf-8 -*-
 
 # Import
-import argparse
 import requests
 import json
 import sys
@@ -10,40 +9,30 @@ import asyncio
 
 from functools import wraps
 
+# Import required modules
 import telepot
 from telepot.aio.delegate import pave_event_space, per_chat_id, create_open
 
+# Import app modules
 from handler import Handler
 from replier import Replier
 
-# Parse arguments
-argparser = argparse.ArgumentParser(description = "A telegram bot just for fun.")
-argparser.add_argument("--config", action = "store", default = "config.json", type = str, help = "The config file of the bot.")
+import status
 
-args = argparser.parse_args()
-
-config_file = args.config
-try:
-    with open(config_file) as config:
-        bot_config = json.loads(config.read(), encoding="utf-8")
-        telebot_token = bot_config["token"]
-        admin = bot_config["admin"]
-        tuling_token = bot_config["tuling"]
-except:
-    print("read error")
-    sys.exit()
+bot_status = status.bot_status
 
 # Make a telebot
 class TeleBot(telepot.aio.helper.ChatHandler):
     switch = True
     def __init__(self, *args, **kwargs):
-        super(TeleBot, self).__init__(*args, **kwargs)
-        self.handler = Handler(tuling_token, admin)
+        super(TeleBot, self).__init__(*args, **kwargs) # Init super class first to get sender mixin
+        self.status = status.bot_status
+        self.handler = Handler(self.status.tuling_token, self.status.admin)
         self.replier = Replier(self.sender)
 
     def _privileged(self, fn):
         async def wrapper(self, msg):
-            if msg["from"]["username"] == admin:
+            if msg["from"]["username"] == self.status.admin:
                 await fn(self, msg)
             else:
                 reply = "Sorry, you're not privileged."
@@ -68,7 +57,7 @@ class TeleBot(telepot.aio.helper.ChatHandler):
         await self.replier.send(reply, msg)
 
 # Start the Bot
-bot = telepot.aio.DelegatorBot(telebot_token, [
+bot = telepot.aio.DelegatorBot(status.bot_status.telebot_token, [
     pave_event_space()(
         per_chat_id(), create_open, TeleBot, timeout=30),
 ])
