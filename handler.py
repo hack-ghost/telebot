@@ -1,16 +1,13 @@
 import requests
 import json
 
-from telepot.routing import by_command
 from telepot.helper import Router
 
 class Handler(object):
     def __init__(self, tuling_token, admin):
         self._tuling_token = tuling_token
         self.admin = admin
-        self.router = Router(by_command(
-        lambda msg: "/chat" + " " + msg["text"].lstrip("- ") if msg["text"][0] == "-" else msg["text"],
-        pass_args = True),
+        self.router = Router(self._by_command(),
         {
         "chat": self.on_chat,
         "count": self.on_count,
@@ -18,6 +15,25 @@ class Handler(object):
         })
 
     async def _pass(self, *aa, **kk): return ""
+
+    def _by_command(self, prefix=('/', '-'), separator=' ', pass_args=True):
+        def extractor(msg):
+            if msg["text"].startswith('-'):
+                return "-chat" + " " + msg["text"].lstrip("- ")
+            else:
+                return msg["text"]
+
+        if not isinstance(prefix, (tuple, list)):
+            prefix = (prefix,)
+
+        def f(msg):
+            text = extractor(msg)
+            for px in prefix:
+                if text.startswith(px):
+                    chunks = text[len(px):].split(separator)
+                    return chunks[0], (chunks[1:],) if pass_args else ()
+            return (None,),  # to distinguish with `None`
+        return f
 
     async def _get_tuling(self, msg, text="你好"):
         api_url = "http://www.tuling123.com/openapi/api"
