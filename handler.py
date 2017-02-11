@@ -1,8 +1,14 @@
 import requests
 import json
+import re
 
 import telepot.aio
 from telepot.aio.helper import Router
+from telepot import glance
+
+import status
+
+bot_status = status.bot_status
 
 class Handler(object):
     def __init__(self, tuling_token, admin):
@@ -13,6 +19,8 @@ class Handler(object):
         {
         "chat": self.on_chat,
         "count": self.on_count,
+        "status": self.on_status,
+        "switch": self.on_switch,
         None: self._pass,
         })
 
@@ -23,6 +31,8 @@ class Handler(object):
             prefix = (prefix,)
 
         def key_function(msg):
+            chat_id = msg["chat"]["id"]
+
             text = msg["text"]
             if text.startswith("-"):
                 chucks = text.lstrip("-" + separator).split(separator)
@@ -49,6 +59,23 @@ class Handler(object):
 
     async def on_count(self, msg, *args, **kwargs):
         return "233"
+
+    async def on_status(self, msg, *args, **kwargs):
+        chat_id = msg["chat"]["id"]
+
+        if bot_status.switch[chat_id]:
+            return "The bot is on."
+        else:
+            return "The bot is off."
+
+    async def on_switch(self, msg, *args, **kwargs):
+        chat_id = msg["chat"]["id"]
+        if msg["from"]["username"] == self.admin:
+            bot_status.switch[chat_id] = not bot_status.switch[chat_id]
+            return "Switched " + ("on. " if bot_status.switch[chat_id] else "off.")
+        else:
+            return "Sorry, you're not privileged."
+
 
     async def handle(self, msg):
         content_type, chat_type, chat_id = glance(msg)

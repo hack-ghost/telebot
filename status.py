@@ -1,6 +1,8 @@
 import argparse
 import json
 
+from collections import defaultdict
+
 # Import a non-async telepot library to use non-async getMe() function
 import telepot
 
@@ -18,6 +20,7 @@ class Status(object):
     def __init__(self):
         global args
         self.config_file = args.config
+
         with open(self.config_file) as config:
             self._bot_config = json.loads(config.read(), encoding="utf-8")
             self._telebot_token = self._bot_config["token"]
@@ -26,6 +29,8 @@ class Status(object):
         self._bot = telepot.Bot(self._telebot_token)
         self._me = self._bot.getMe()
         del self._bot # Won't use it in the future
+
+        self.switch = defaultdict(lambda: True)
 
     @property
     def tuling_token(self):
@@ -47,6 +52,5 @@ class Status(object):
     def me(self):
         return self._me
 
+# Initialize a status object to provide interface to other modules
 bot_status = Status()
-
-print(bot_status.me)
