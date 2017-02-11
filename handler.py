@@ -1,6 +1,5 @@
 import requests
 import json
-import re
 
 import telepot.aio
 from telepot.aio.helper import Router
@@ -24,6 +23,8 @@ class Handler(object):
         None: self._pass,
         })
 
+        self._unblocking_commands = ["status", "switch"]
+
     async def _pass(self, *aa, **kk): return ""
 
     def _assure_privilege(fn):
@@ -40,16 +41,38 @@ class Handler(object):
 
         def key_function(msg):
             chat_id = msg["chat"]["id"]
-
+            command_text = msg["text"].split()[0]
             text = msg["text"]
+
+            if command_text.startswith("/"):
+                command_text = command_text.lstrip("/")
+                if "@" in command_text:
+                    if command_text.count("@") == 1:
+                        if command_text.endswith(bot_status.name):                        
+                            command = command_text.split("@")[0]
+                        else:
+                            return
+                    else:
+                        return
+                else:
+                    command = command_text.lstrip("/")
+
+            if text.startswith("-"):
+                command = "chat"
+
+            # If the bot has been switched off, make some commands avaliable
+            if not bot_status.switch[chat_id]:
+                if command not in self._unblocking_commands:
+                    return
+
             if text.startswith("-"):
                 chucks = text.lstrip("-" + separator).split(separator)
-                return "chat", chucks if pass_args else ()
+                return command, chucks if pass_args else ()
 
             for px in prefix:
                 if text.startswith(px):
                     chunks = text[len(px):].split(separator)
-                    return chunks[0], (chunks[1:],) if pass_args else ()
+                    return command, (chunks[1:],) if pass_args else ()
             return (None,),  # to distinguish with `None`
 
         return key_function
