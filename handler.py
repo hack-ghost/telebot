@@ -26,6 +26,14 @@ class Handler(object):
 
     async def _pass(self, *aa, **kk): return ""
 
+    def _assure_privilege(fn):
+        async def wrapper(self, msg, *args, **kwargs):
+            if msg["from"]["username"] != self.admin:
+                return "Sorry, you're not privileged."
+            else:
+                return await fn(self, msg, *args, **kwargs)
+        return wrapper
+
     def _by_command(self, prefix=("/",), separator=" ", pass_args=True):
         if not isinstance(prefix, (tuple, list)):
             prefix = (prefix,)
@@ -68,14 +76,11 @@ class Handler(object):
         else:
             return "The bot is off."
 
+    @_assure_privilege
     async def on_switch(self, msg, *args, **kwargs):
         chat_id = msg["chat"]["id"]
-        if msg["from"]["username"] == self.admin:
-            bot_status.switch[chat_id] = not bot_status.switch[chat_id]
-            return "Switched " + ("on. " if bot_status.switch[chat_id] else "off.")
-        else:
-            return "Sorry, you're not privileged."
-
+        bot_status.switch[chat_id] = not bot_status.switch[chat_id]
+        return "Switched " + ("on. " if bot_status.switch[chat_id] else "off.")
 
     async def handle(self, msg):
         content_type, chat_type, chat_id = glance(msg)
