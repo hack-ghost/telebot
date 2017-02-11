@@ -41,8 +41,7 @@ class TeleBot(telepot.aio.helper.ChatHandler):
         self.handler = Handler(tuling_token, admin)
         self.replier = Replier(self.sender)
 
-    def _privilege_test(fn):
-        @wraps(fn)
+    def _privileged(self, fn):
         async def wrapper(self, msg):
             if msg["from"]["username"] == admin:
                 await fn(self, msg)
@@ -51,30 +50,30 @@ class TeleBot(telepot.aio.helper.ChatHandler):
                 await self.replier.send(reply, msg)
         return wrapper
 
-
     def _switch_controll(fn):
-        @wraps(fn)
         async def wrapper(self, msg):
-            if msg["text"] == "/switch":
+            async def control_switch(self, msg):
                 TeleBot.switch = not TeleBot.switch
                 reply = "Switched " + ("on" if TeleBot.switch else "off")
                 await self.replier.send(reply, msg)
-                return
-            if TeleBot.switch: await fn(msg)
+                
+            if msg["text"] == "/switch":
+                await self._privileged(control_switch)(self, msg)
+            if TeleBot.switch: await fn(self, msg)
         return wrapper
 
-    @_privilege_test
     @_switch_controll
     async def on_chat_message(self, msg):
         await self.sender.sendChatAction("typing")
         reply = await self.handler.handle(msg)
         await self.replier.send(reply, msg)
 
-
 # Start the Bot
 bot = telepot.aio.DelegatorBot(telebot_token, [
     pave_event_space()(
         per_chat_id(), create_open, TeleBot, timeout=30),
+    #pave_event_space()(
+    #    per_chat_id(), create_open, TeleBot, timeout=30),
 ])
 
 loop = asyncio.get_event_loop()
